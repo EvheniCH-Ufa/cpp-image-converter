@@ -3,6 +3,7 @@
 #include "pack_defines.h"
 
 #include <array>
+#include <cassert> // по замечанию
 #include <fstream>
 #include <string_view>
 
@@ -36,9 +37,12 @@ namespace img_lib {
     }
     PACKED_STRUCT_END
 
-    // функция вычисления отступа по ширине
+    const int COLOR_PER_PIXEL = 3;       // по замечанию
+    const int VYRAVNIVANIE_FOR_BMP = 4;  // по замечанию
+
+    // функция вычисления отступа по ширине исправлено // по замечанию
     static int GetBMPStride(int w) {
-        return 4 * ((w * 3 + 3) / 4);
+        return VYRAVNIVANIE_FOR_BMP * ((w * COLOR_PER_PIXEL + COLOR_PER_PIXEL) / VYRAVNIVANIE_FOR_BMP);
     }
 
     bool SaveBMP(const Path& file, const Image& image)
@@ -97,6 +101,9 @@ namespace img_lib {
         in.read(reinterpret_cast<char*>(&file_header), sizeof(file_header));
         in.read(reinterpret_cast<char*>(&info_header), sizeof(info_header));
 
+        // если тип не BM, то ошибка // по замечанию
+        assert((file_header.type[0] != 'B' || file_header.type[1] != 'M'));
+        
         const int w = info_header.width;
         const int h = info_header.height;
         const int stride = GetBMPStride(w); //вычисл р-р строки
@@ -123,6 +130,7 @@ namespace img_lib {
                 line[x].a = byte{ 255 };
             }
         }
+        assert((!in.fail() && !in.bad() && in.eof())); // не крит ошибка, не ошибка и конец файла // по замечанию
         return result;
     }
 }  // namespace img_lib
