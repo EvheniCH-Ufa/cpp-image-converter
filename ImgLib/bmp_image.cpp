@@ -97,27 +97,14 @@ namespace img_lib {
         in.read(reinterpret_cast<char*>(&file_header), sizeof(file_header));
         in.read(reinterpret_cast<char*>(&info_header), sizeof(info_header));
 
-        // если тип не BM, то пусто
-        if (file_header.type[0] != 'B' || file_header.type[1] != 'M')
-        {
-            return {};
-        }
-
-/*        if (info_header.bits_per_pixel != 24 || info_header.compression != 0)
-        {
-            return {};
-        }*/
-
         const int w = info_header.width;
         const int h = info_header.height;
-        const int stride = GetBMPStride(w); //вычисл р-р стр
+        const int stride = GetBMPStride(w); //вычисл р-р строки
 
         Image result(w, h, Color::Black());
         vector<char> buffer(stride); // без буферов... нельзя (не примут)
 
-   //     in.seekg(file_header.off_bits);
-
-        // пишем строки снизу вверх
+         // пишем строки снизу вверх
         for (int y = h - 1; y >= 0; --y)
         {
             in.read(buffer.data(), stride);
