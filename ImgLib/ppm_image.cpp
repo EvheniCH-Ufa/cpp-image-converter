@@ -69,8 +69,6 @@ Image LoadPPM(const Path& file) {
             line[x].b = static_cast<byte>(buff[x * 3 + 2]);
         }
     }
-
     return result;
 }
-
 }  // namespace img_lib
