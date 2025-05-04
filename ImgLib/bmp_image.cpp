@@ -1,9 +1,9 @@
-﻿#include "bmp_image.h"
+#include "bmp_image.h"
 #include "img_lib.h"
 #include "pack_defines.h"
 
 #include <array>
-#include <cassert> // по замечанию
+#include <cassert>
 #include <fstream>
 #include <string_view>
 
@@ -37,12 +37,13 @@ namespace img_lib {
     }
     PACKED_STRUCT_END
 
-    const int COLOR_PER_PIXEL = 3;       // по замечанию
-    const int VYRAVNIVANIE_FOR_BMP = 4;  // по замечанию
 
-    // функция вычисления отступа по ширине исправлено // по замечанию
+    const int COLOR_PER_PIXEL = 3; // по замечанию
+    const int ALIGNMENT = 4;       // по замечанию 
+
+// функция вычисления отступа по ширине
     static int GetBMPStride(int w) {
-        return VYRAVNIVANIE_FOR_BMP * ((w * COLOR_PER_PIXEL + COLOR_PER_PIXEL) / VYRAVNIVANIE_FOR_BMP);
+        return ALIGNMENT * ((w * COLOR_PER_PIXEL + COLOR_PER_PIXEL) / ALIGNMENT); // по замечанию
     }
 
     bool SaveBMP(const Path& file, const Image& image)
@@ -57,8 +58,11 @@ namespace img_lib {
         const int h = image.GetHeight();
         const int stride = GetBMPStride(w); // вычисление отступа по ширине
 
+        const auto head_sizeof = sizeof(BitmapFileHeader) + sizeof(BitmapInfoHeader); // по замечанию
+
         BitmapFileHeader file_header;
-        file_header.size = 54 + stride * h; // размер файла = заголовки + данные
+        file_header.off_bits = head_sizeof;          // по замечанию
+        file_header.size = head_sizeof + stride * h; // размер файла = заголовки + данные // по замечанию
 
         // 1-й заг-к
         BitmapInfoHeader info_header;
@@ -101,17 +105,25 @@ namespace img_lib {
         in.read(reinterpret_cast<char*>(&file_header), sizeof(file_header));
         in.read(reinterpret_cast<char*>(&info_header), sizeof(info_header));
 
-        // если тип не BM, то ошибка // по замечанию
-        assert((file_header.type[0] != 'B' || file_header.type[1] != 'M'));
-        
+        //чутка считали и смотрим, что там с потоком
+        if (!in.good()) { // нет ошибок и не конец файла  // по замечанию
+            return {}; 
+        }
+
+        // если тип не BM, то пусто
+        if (file_header.type[0] != 'B' || file_header.type[1] != 'M')
+        {
+            return {};
+        }
+
         const int w = info_header.width;
         const int h = info_header.height;
-        const int stride = GetBMPStride(w); //вычисл р-р строки
+        const int stride = GetBMPStride(w); //вычисл р-р стр
 
         Image result(w, h, Color::Black());
         vector<char> buffer(stride); // без буферов... нельзя (не примут)
 
-         // пишем строки снизу вверх
+        // пишем строки снизу вверх
         for (int y = h - 1; y >= 0; --y)
         {
             in.read(buffer.data(), stride);
@@ -130,7 +142,7 @@ namespace img_lib {
                 line[x].a = byte{ 255 };
             }
         }
-        assert((!in.fail() && !in.bad() && in.eof())); // не крит ошибка, не ошибка и конец файла // по замечанию
+        assert((!in.fail() && !in.bad() && in.eof())); // не крит ошибка, не ошибка и конец файла
         return result;
     }
 }  // namespace img_lib
